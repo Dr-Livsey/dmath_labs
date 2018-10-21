@@ -41,27 +41,16 @@ auto transposeMatrix = [](Matrix &m)
 	Matrix().swap(tm);
 };
 
+Graph::Graph(std::string fname)
+{
+	isOriented = false;
+	readGraph(fname);
+}
+
 Graph::Graph()
 {
 	isOriented = false;
-	readGraph("init_graph.txt");
-
-	try
-	{
-		showAdjacencyMatrix();
-		splitEdge(1, 5);
-		showAdjacencyMatrix();
-	}
-	catch (const std::out_of_range &)
-	{
-		cout << "Exception: Vertex or vertices does not belong to this graph." << endl;
-	}
-	catch (const std::exception &ex)
-	{
-		cout << "Exception: " << ex.what() << endl;
-	}
 }
-
 
 Graph::~Graph()
 {
@@ -400,26 +389,6 @@ std::vector<int> Graph::selectVertexes(std::function<bool(short)> f_ptr) const
 	return selectedVertexes;
 }
 
-std::vector<short> Graph::mergeRows
-					(
-						const std::vector<short>&r1, 
-						const std::vector<short>&r2, 
-						std::function<short(short, short)> f
-					) const
-{
-	if (r1.size() != r2.size())
-		throw std::exception("Invalid row(s) - wrong size");
-
-	std::vector<short> resultVector(r1.size());
-
-	for (int i = 0; i < r1.size(); i++)
-	{
-		resultVector[i] = f(r1[i], r2[i]);
-	}
-
-	return resultVector;
-}
-
 Paths Graph::getAllPaths(short a) const
 {
 	if (AdjacencyMatrix.empty())
@@ -563,6 +532,15 @@ bool Graph::isConnectedGraph(Paths p) const
 	}
 
 	return true;
+}
+
+void Graph::resizeAdMatrix(size_t s)
+{
+	if (s == AdjacencyMatrix.size()) return;
+
+	AdjacencyMatrix.resize(s);
+	for (std::vector<short> &v : AdjacencyMatrix)
+		v.resize(s);
 }
 
 void Graph::showDegSequance() const
@@ -793,6 +771,7 @@ void Graph::AddEdge(short a, short b)
 	if (isOriented == false && a != b)
 		AdjacencyMatrix.at(b).at(a)++;
 }
+
 void Graph::AddVertex(std::string newVertex)
 {
 	if (AdjacencyMatrix.empty())
@@ -831,6 +810,34 @@ void Graph::AddVertex(std::string newVertex)
 			AdjacencyMatrix[i].push_back(0);
 	}
 	
+	AdjacencyMatrix.back().pop_back();
+}
+void Graph::AddVertex(std::vector<short> newVertexVector)
+{
+	if (newVertexVector.size() == 1 && newVertexVector[0] == 0)
+	{
+		newVertexVector.resize(AdjacencyMatrix.size() + 1);
+	}
+	else if (newVertexVector.size() != AdjacencyMatrix.size() + 1)
+	{
+		throw std::exception("Wrong initialization of new vertex: Extra characters.");
+	}
+
+	for (short v : newVertexVector)
+	{
+		if (v < 0)
+			throw std::exception("Wrong initialization of new vertex: Extra characters.");
+	}
+
+	AdjacencyMatrix.push_back(newVertexVector);
+	for (int i = 0; i < AdjacencyMatrix.size(); i++)
+	{
+		if (isOriented == false)
+			AdjacencyMatrix[i].push_back(newVertexVector[i]);
+		else
+			AdjacencyMatrix[i].push_back(0);
+	}
+
 	AdjacencyMatrix.back().pop_back();
 }
 
@@ -879,8 +886,149 @@ void Graph::pullOffEdge(short a, short b)
 
 	DeleteEdge(a, b);
 
-	/**/
+	vertexIdentification(a, b);
 }
+
+void Graph::vertexIdentification(short a, short b)
+{
+	if (AdjacencyMatrix.empty())
+		throw std::exception("Graph is empty.");
+
+	if (a == b)
+		throw std::exception("This edge is loop");
+
+	a--, b--;
+	AdjacencyMatrix.at(a).at(b);
+	/*Outcome edges*/
+	/*
+		 j1        jn
+	a -> [][][][][][]
+	.
+	.
+	b -> [][][][][][]
+	*/
+	std::vector<short> outCome(AdjacencyMatrix.size() + 1);
+	std::vector<short> inCome(AdjacencyMatrix.size() + 1);
+	for (int j = 0; j < AdjacencyMatrix.size(); j++)
+	{
+		outCome[j] = std::max(AdjacencyMatrix[a][j], AdjacencyMatrix[b][j]);
+	}
+
+	/*loops*/
+	outCome[AdjacencyMatrix.size()] = std::max(AdjacencyMatrix[a][a], AdjacencyMatrix[b][b]);
+
+	if (isOriented == false)
+		std::copy(outCome.begin(), outCome.end(), inCome.begin());
+	else
+	{
+		for (int i = 0; i < AdjacencyMatrix.size(); i++)
+		{
+			inCome[i] = std::max(AdjacencyMatrix[i][a], AdjacencyMatrix[i][b]);
+		}
+	}
+
+	AdjacencyMatrix.push_back(outCome);
+
+	for (int i = 0; i < AdjacencyMatrix.size(); i++)
+			AdjacencyMatrix[i].push_back(inCome[i]);
+
+	AdjacencyMatrix.back().pop_back();
+
+	/*After deleting numbers decrease*/
+	short firstDelete = std::min(a + 1, b + 1);
+	short secondDelete = std::max(a + 1, b + 1);
+
+	DeleteVertex(firstDelete), DeleteVertex(secondDelete - 1);
+}
+
+void Graph::vertexDuplicate(short vertex)
+{
+	if (AdjacencyMatrix.empty())
+		throw std::exception("Graph is empty.");
+
+	vertex--;
+	AdjacencyMatrix.at(vertex);
+
+	std::vector<short> newOutCome(AdjacencyMatrix.size() + 1);
+	std::vector<short> newInCome(AdjacencyMatrix.size() + 1);
+
+	std::copy(AdjacencyMatrix[vertex].begin(), AdjacencyMatrix[vertex].end(), newOutCome.begin());
+
+	/*copy loops*/
+	newOutCome[AdjacencyMatrix.size()] = newOutCome[vertex];
+	newOutCome[vertex] = 0;
+
+	if (isOriented == false)
+		std::copy(newOutCome.begin(), newOutCome.end(), newInCome.begin());
+	else
+	{
+		for (int i = 0; i < AdjacencyMatrix.size(); i++)
+			if (i != vertex) newInCome[i] = AdjacencyMatrix[i][vertex];
+	}
+
+	AdjacencyMatrix.push_back(newOutCome);
+	for (int i = 0; i < AdjacencyMatrix.size(); i++)
+		AdjacencyMatrix[i].push_back(newInCome[i]);
+
+	AdjacencyMatrix.back().pop_back();
+}
+
+void Graph::vertexReproduction(short vertex)
+{
+	vertexDuplicate(vertex);
+	AddEdge(vertex, (short)AdjacencyMatrix.size());
+	AdjacencyMatrix[AdjacencyMatrix.size() - 1][AdjacencyMatrix.size() - 1] = 0;
+}
+
+Graph Graph::operator||(const Graph &G1)
+{
+	if (G1.isOriented != isOriented)
+		throw std::exception("Types of graphs are not equal");
+
+	Graph Graph1, Graph2;
+	size_t resultSize = std::max(AdjacencyMatrix.size(), G1.AdjacencyMatrix.size());
+
+	Graph1.AdjacencyMatrix = AdjacencyMatrix;
+	Graph1.resizeAdMatrix(resultSize);
+
+	Graph2.AdjacencyMatrix = G1.AdjacencyMatrix;
+	Graph2.resizeAdMatrix(resultSize);
+
+	Matrix &m1 = Graph1.AdjacencyMatrix;
+	Matrix &m2 = Graph2.AdjacencyMatrix;
+
+	for (int i = 0; i < resultSize; i++)
+	{
+		for (int j = 0; j < resultSize; j++)
+		{
+			m1[i][j] = std::max(m1[i][j], m2[i][j]);
+		}
+	}
+
+	return Graph1;
+}
+
+//Graph & Graph::operator*(const Graph &)
+//{
+//	// TODO: insert return statement here
+//}
+//
+//Graph Graph::operator+(const Graph &G1)
+//{
+//	Graph Graph1, Graph2;
+//	size_t resultSize = std::max(AdjacencyMatrix.size(), G1.AdjacencyMatrix.size());
+//
+//	Graph1.AdjacencyMatrix = AdjacencyMatrix;
+//	Graph1.resizeAdMatrix(resultSize);
+//
+//	Graph2.AdjacencyMatrix = G1.AdjacencyMatrix;
+//	Graph2.resizeAdMatrix(resultSize);
+//
+//	Matrix &m1 = Graph1.AdjacencyMatrix;
+//	Matrix &m2 = Graph2.AdjacencyMatrix;
+//
+//
+//}
 
 std::vector<short> Graph::getVertexVector(std::string VertexString)
 {
@@ -953,11 +1101,6 @@ std::list<std::string> Graph::getRowList(std::ifstream &initfile)
 
 void Graph::readGraph(std::string filename)
 {
-	std::ifstream initfile(filename, std::ifstream::in);
-
-	if (initfile.is_open() == false)
-		throw std::exception("Could not open file.");
-
 	auto readAttribute = [](std::ifstream &initfile) -> std::vector<std::string>
 	{
 		std::vector<std::string> tokens;
@@ -980,29 +1123,36 @@ void Graph::readGraph(std::string filename)
 		return tokens;
 	};
 
-	std::vector<std::string> attributes = readAttribute(initfile);
-	std::string attr = attributes[0];
-
-	if (attributes[1] == "oriented") isOriented = true;
-
-	/*read graph and convert it to AdMatrix.*/
-	AdjacencyMatrix.clear();
-	Matrix().swap(AdjacencyMatrix);
+	std::ifstream initfile(filename, std::ifstream::in);
 
 	try
 	{
-		if (attr == "AM")
-			readAdMatrix(initfile);
-		else if (attr == "AL")
-			readAdList(initfile);
-		else if (attr == "IM")
-			readIMatrix(initfile);
+		if (initfile.is_open() == false)
+			throw std::exception("Could not open file.");
+
+		std::vector<std::string> attributes = readAttribute(initfile);
+		std::string attr = attributes[0];
+
+		if (attributes[1] == "oriented") isOriented = true;
+
+		/*read graph and convert it to AdMatrix.*/
+		AdjacencyMatrix.clear();
+		Matrix().swap(AdjacencyMatrix);
+
+			if (attr == "AM")
+				readAdMatrix(initfile);
+			else if (attr == "AL")
+				readAdList(initfile);
+			else if (attr == "IM")
+				readIMatrix(initfile);
 	}
 	catch (const std::exception &e)
 	{
+		initfile.close();
 		AdjacencyMatrix.clear();
 		Matrix().swap(AdjacencyMatrix);
-		cout << e.what() << endl;
+
+		throw std::exception(e);
 	}
 
 	initfile.close();

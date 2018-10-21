@@ -6,10 +6,15 @@
 typedef std::vector<std::vector<short>> Matrix;
 typedef std::vector<std::pair<unsigned, short>> Paths;
 
+/*TODO:
+	1. Соединение графов
+	2. Произведение графов*/
+
 class Graph
 {
 
 public:
+	Graph(std::string fname);
 	Graph();
 	~Graph();
 
@@ -38,11 +43,29 @@ public:
 	void DeleteVertex(short vertex);
 	void DeleteEdge(short a, short b);
 	void AddEdge(short a, short b);
-	void AddVertex(std::string);
 
+	void AddVertex(std::string);
+	void AddVertex(std::vector<short>);
+
+	/*дополнение графа*/
 	void getAdditionGraph();
-	void splitEdge(short a, short b);
-	void pullOffEdge(short a, short b);
+	/*подразбиение ребра*/
+	void splitEdge(short, short);
+	/*стягивание ребра*/
+	void pullOffEdge(short, short);
+	/*отождествление вершин*/
+	void vertexIdentification(short, short);
+	/*дублирование вершины*/
+	void vertexDuplicate(short vertex);
+	/*размножение вершины*/
+	void vertexReproduction(short vertex);
+
+	/*Union graphs*/
+	Graph operator||(const Graph&);
+	/*Connect graphs*/
+	Graph operator*(const Graph&);
+	/*Multiply graphs*/
+	Graph operator+(const Graph&);
 
 private:
 	bool isOriented;
@@ -70,12 +93,6 @@ private:
 	std::vector<size_t> getDegSequence() const;
 
 	std::vector<int> selectVertexes(std::function<bool(short)>) const;
-	std::vector<short> mergeRows
-		(
-			const std::vector<short>&, 
-			const std::vector<short>&, 
-			std::function<short(short, short)>
-		) const;
 
 	Paths getAllPaths(short a) const;
 	std::pair<unsigned, short> getEccentricity(short vertex) const;
@@ -85,5 +102,7 @@ private:
 	Paths getPeriferalVertexes() const;
 
 	bool isConnectedGraph(Paths p) const;
+
+	void resizeAdMatrix(size_t);
 };
 
