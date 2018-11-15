@@ -2,19 +2,23 @@
 #include <vector>
 #include <list>
 #include <functional>
+#include "Interface.h"
+
+#define or ||
+#define and &&
+#define AllPaths -1
 
 typedef std::vector<std::vector<short>> Matrix;
 typedef std::vector<std::pair<unsigned, short>> Paths;
 
-/*TODO:
-	1. Соединение графов
-	2. Произведение графов*/
 
 class Graph
 {
 
 public:
 	Graph(std::string fname);
+	Graph(size_t);
+	Graph(const Graph& other) { *this = other; }
 	Graph();
 	~Graph();
 
@@ -34,9 +38,12 @@ public:
 	void showLeafs() const;
 
 	void showDegSequance() const;
+	void showOrDegSequence() const;
 	void showVertexDegree(short vertex) const;
 
 	void showAdjacencyList() const;
+	void showAdjacencyList(std::string) const;
+
 	void showAdjacencyMatrix() const;
 	void showIncidenceMatrix() const;
 
@@ -53,6 +60,8 @@ public:
 	void splitEdge(short, short);
 	/*стягивание ребра*/
 	void pullOffEdge(short, short);
+	/*стягивание графа*/
+	void pullOffGraph(const std::vector<short> &);
 	/*отождествление вершин*/
 	void vertexIdentification(short, short);
 	/*дублирование вершины*/
@@ -62,11 +71,18 @@ public:
 
 	/*Union graphs*/
 	Graph operator||(const Graph&);
+	Graph operator&(const Graph&);
 	/*Connect graphs*/
 	Graph operator*(const Graph&);
 	/*Multiply graphs*/
 	Graph operator+(const Graph&);
 
+	Graph& operator=(const Graph&other)
+	{
+		this->isOriented = other.isOriented;
+		this->AdjacencyMatrix = other.AdjacencyMatrix;
+		return *this;
+	}
 private:
 	bool isOriented;
 	Matrix AdjacencyMatrix;
@@ -98,11 +114,12 @@ private:
 	std::pair<unsigned, short> getEccentricity(short vertex) const;
 	std::pair<unsigned, short> getRadius() const;
 	std::pair<unsigned, short> getDiameter() const;
-	Paths getCenter() const;
-	Paths getPeriferalVertexes() const;
+	std::vector<short> getCenter() const;
+	std::vector<short> getPeriferalVertexes() const;
 
 	bool isConnectedGraph(Paths p) const;
 
 	void resizeAdMatrix(size_t);
+	Matrix& resizeAdMatrix(Matrix&, size_t);
 };
 

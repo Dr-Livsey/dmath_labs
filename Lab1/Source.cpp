@@ -1,4 +1,5 @@
 #include "Graph.h"
+#include "Interface.h"
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -7,12 +8,10 @@ int main()
 {
 	try
 	{
-		Graph G1("graph1.txt");
-		Graph G2("graph2.txt");
+		Interface my_interface;
 
-		Graph Result = G1 || G2;
-
-		Result.showAdjacencyMatrix();
+		my_interface();
+			
 	}
 	catch (const std::out_of_range &)
 	{
@@ -25,3 +24,50 @@ int main()
 
 	system("pause");
 }
+
+//Задание 2
+
+////а)
+//G1.AddVertex("");
+//G1.AddVertex("");
+//G1.DeleteVertex(3);
+//
+////б)
+////Уменьшили значение всех вершин выше удаленной [3], 
+////так как граф уменьшился на одну вершину
+//G1.AddEdge(3, 10);
+//G1.AddEdge(5, 11);
+//G1.AddEdge(5, 11);
+//G1.AddEdge(11, 1);
+//G1.AddEdge(10, 1);
+//
+//G1.DeleteEdge(2, 3);
+//G1.DeleteEdge(9, 9);
+//
+////c)
+//Graph G4 = G1;
+//
+//G4.getAdditionGraph();
+
+////д)
+//G3.AddVertex("");
+//G3.AddVertex("");
+//G3.AddVertex("");
+//G3.DeleteVertex(3);
+//
+//G3.AddEdge(2, 1);
+//G3.AddEdge(4, 1);
+//G3.AddEdge(5, 6);
+//G3.DeleteEdge(3, 5);
+
+////е)
+//
+//G3.AddEdge(2, 1);
+//G3.AddEdge(5, 1);
+//G3.AddEdge(6, 7);
+//G3.DeleteEdge(4, 6);
+//
+//G3.AddVertex("");
+//G3.AddVertex("");
+//G3.AddVertex("");
+//G3.DeleteVertex(3);
