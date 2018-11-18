@@ -6,10 +6,9 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include <boost/system/error_code.hpp>
 
 class Graph;
-
-void get_function(Graph *, int, const std::deque<std::string>&);
 
 class Interface
 {
@@ -38,7 +37,10 @@ private:
 	void print_graphs();
 	void help();
 
+	std::pair<short, short> get_edge(const std::string&);
+	Graph*					get_graph(std::string&);
 	std::deque<std::string> get_tokens(std::string, boost::regex);
+	void					get_function(Graph *, int, const std::deque<std::string>&);
 
 	std::map<std::string, std::unique_ptr<Graph>> data_base;
 };

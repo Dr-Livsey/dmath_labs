@@ -47,23 +47,9 @@ void Interface::operator()(void)
 void Interface::show(int cmd_num, std::string raw_cmd)
 {
 	if (cmd_num >= 0 && cmd_num <= 16)
-	{
-		boost::regex base("^(\\\"[^\\\"]+?\\\")(?: +\\d{1,})* *$");
-		boost::smatch matches;
-		bool take_gname = boost::regex_match(raw_cmd, matches, base);
-
-		if (take_gname == false)
-			throw std::exception("Invalid arguments in command: show");
-
-		if (data_base.find(matches[1].str()) == data_base.end())
-			throw std::exception("No graph with the same name");
-		
-		Graph *graph_ptr = data_base[matches[1].str()].get();
-
-		std::string srest;
-		std::copy(raw_cmd.begin() + matches[1].length(), raw_cmd.end(), std::back_inserter(srest));
-
-		std::deque<std::string> stokens = get_tokens(srest, boost::regex("\\d{1,}"));
+	{		
+		Graph *graph_ptr = get_graph(raw_cmd);
+		std::deque<std::string> stokens = get_tokens(raw_cmd, boost::regex("\\d{1,}"));
 
 		//Если cmd_num из этого промежутка и в команде заданы stokens то exception
 		if ((cmd_num >= 0 && cmd_num <= 1 ||
@@ -82,23 +68,86 @@ void Interface::show(int cmd_num, std::string raw_cmd)
 	}
 }
 
-void Interface::get(int cmd_num, std::string)
+void Interface::get(int cmd_num, std::string raw_cmd)
 {
+	/*  "21  <название графа>                     - определение дополнения графа\n"
+		"22  <название графа> <р1>                - подразбиение ребра\n"
+		"23  <название графа> {<в1>, ..., <вn>}   - стягивание графа\n"
+		"24  <название графа> <р1>                - стягивание ребра\n"
+		"25  <название графа> <р1>                - отождествление вершин\n"
+		"26  <название графа> <в1>                - дублирование вершины\n"
+		"27  <название графа> <в1>                - размножение вершины\n"
+		"28  <название графа1> <название_графов2> - умножение графов\n"
+		"29  <название графа1> <название_графов2> - присоединение графов\n"
+		"30  <название графа1> <название_графов2> - объединение графов\n";
+	*/
+
+	if (cmd_num >= 21 and cmd_num <= 27)
+	{
+		Graph *graph_ptr = get_graph(raw_cmd);
+		boost::regex token_base("\\d{1,}|\\(\\d{1,}, *\\d{1,}\\)");
+		std::deque<std::string> stokens = get_tokens(raw_cmd, token_base);
+
+		get_function(graph_ptr, cmd_num, stokens);
+	}
+	else if (cmd_num >= 28 and cmd_num <= 30)
+	{
+		Graph *graph_ptr = get_graph(raw_cmd);
+		boost::regex token_base("\\\"[^\\\"]+?\\\"");
+
+		std::deque<std::string> stokens = get_tokens(raw_cmd, token_base);
+
+		get_function(graph_ptr, cmd_num, stokens);
+	}
+	else
+	{
+		throw std::exception("Incorrect command number. (to see correct commands enter: \"get ?\")");
+	}
 }
 
-void Interface::add(int cmd_num, std::string)
+void Interface::add(int cmd_num, std::string raw_cmd)
 {
+	if (cmd_num == 17 or cmd_num == 19)
+	{
+		Graph *graph_ptr = get_graph(raw_cmd);
+		boost::regex token_base("\\d{1,}|\\(\\d{1,}, *\\d{1,}\\)");
+		std::deque<std::string> stokens = get_tokens(raw_cmd, token_base);
+
+		if ((cmd_num == 17) && stokens.size())
+		{
+			throw std::exception("Invalid arguments in command: add 17");
+		}
+
+		get_function(graph_ptr, cmd_num, stokens);
+	}
+	else
+	{
+		throw std::exception("Incorrect command number. (to see correct commands enter: \"add ?\")");
+	}
 }
 
-void Interface::delete_(int cmd_num, std::string)
+void Interface::delete_(int cmd_num, std::string raw_cmd)
 {
+	if (cmd_num == 18 or cmd_num == 20)
+	{
+		Graph *graph_ptr = get_graph(raw_cmd);
+
+		boost::regex token_base("\\d{1,}|\\(\\d{1,}, *\\d{1,}\\)");
+		std::deque<std::string> stokens = get_tokens(raw_cmd, token_base);
+
+		get_function(graph_ptr, cmd_num, stokens);
+	}
+	else
+	{
+		throw std::exception("Incorrect command number. (to see correct commands enter: \"del ?\")");
+	}
 }
 
 void Interface::parse_command(std::string row_cmd)
 {
-	boost::regex op_base("^ *(show|add|delete|get|help) +\\?$");
-	boost::regex graph_op_base("^ *(create|delete|copy) +(?:\\\"[^\\\"]+?\\\"(?: *|$))+$");
-	boost::regex ops("^ *(show|add|delete|get) +(\\d{1,}) *(.*)$");
+	boost::regex op_base("^ *(show|add|del|get|help) +\\?$");
+	boost::regex graph_op_base("^ *(create|delete|copy) +(?:\\\"[^\\\"]+?\\\" *)+$");
+	boost::regex ops("^ *(show|add|del|get) +(\\d{1,}) *(.*)$");
 	boost::smatch matches;
 
 	if (boost::regex_match(row_cmd, boost::regex("^ *help *$")))
@@ -109,7 +158,7 @@ void Interface::parse_command(std::string row_cmd)
 	{
 		if (matches[1].str() == "show")			print_show();	
 		else if (matches[1].str() == "add")		print_add();
-		else if (matches[1].str() == "delete")  print_delete();
+		else if (matches[1].str() == "del")  print_delete();
 		else if (matches[1].str() == "get")		print_get();
 	}
 	else if (boost::regex_match(row_cmd, matches, boost::regex("^ *(\\d{1,}) +\\?$")))
@@ -153,7 +202,7 @@ void Interface::parse_command(std::string row_cmd)
 
 		if (matches[1].str() == "show")			show(cmd_num, matches[3].str());
 		else if (matches[1].str() == "add")		add(cmd_num, matches[3].str());
-		else if (matches[1].str() == "delete")  delete_(cmd_num, matches[3].str());
+		else if (matches[1].str() == "del")  delete_(cmd_num, matches[3].str());
 		else if (matches[1].str() == "get")		get(cmd_num, matches[3].str());
 	}
 	else
@@ -183,7 +232,21 @@ void Interface::create_graph(const char *graph_name)
 	if (data_base.find(graph_name) != data_base.end())
 		throw std::exception("Graph with this name already exists");
 
-	data_base[std::string(graph_name)] = std::unique_ptr<Graph>(new Graph());
+	std::string response;
+	while (true)
+	{
+		cout << "Oriented? (Yes/No): ", std::getline(std::cin, response);
+
+		if (response != "Yes" and response != "No")
+		{
+			cout << "Response was not recognized. Repeat, please\n" << endl;
+		}
+		else break;
+	}
+
+	bool isor = response == "Yes" ? true : false;
+
+	data_base[std::string(graph_name)] = std::unique_ptr<Graph>(new Graph(isor));
 }
 
 void Interface::create_graph(const char *graph_name, const char *fname)
@@ -285,9 +348,12 @@ void Interface::print_get()
 		"22  <название графа> <р1>                - подразбиение ребра\n"
 		"23  <название графа> {<в1>, ..., <вn>}   - стягивание графа\n"
 		"24  <название графа> <р1>                - стягивание ребра\n"
-		"25  <название графа> <в1>                - отождествление вершины\n"
+		"25  <название графа> <в1> <в1>           - отождествление вершин\n"
 		"26  <название графа> <в1>                - дублирование вершины\n"
-		"27  <название графа> <в1>                - размножение вершины\n";
+		"27  <название графа> <в1>                - размножение вершины\n"
+		"28  <название графа1> <название_графов2> - умножение графов\n"
+		"29  <название графа1> <название_графов2> - присоединение графов\n"
+		"30  <название графа1> <название_графов2> - объединение графов\n";
 
 	cout << str << endl;
 }
@@ -297,7 +363,7 @@ void Interface::help()
 	setlocale(LC_ALL, "Russian");
 	const char *str =
 		"Список доступных комманд в операции: <операция> ?\n"
-		"Доступные операции: show | add | delete | get\n\n"
+		"Доступные операции: show | add | del | get\n\n"
 		"Ребра указываются в виде: (в1, в2)\n"
 
 		"Создать пустой граф:    create \"название графа\"\n"
@@ -309,10 +375,8 @@ void Interface::help()
 		"Произведение графов:    <Г_рез> = <Г1> * <Г2>\n"
 		"Объединение графов:     <Г_рез> = <Г1> || <Г2>\n\n"
 
-		"Формат команды:  1. <show|add|delete|get> <номер_операции> <название_графа> [параметры]\n"
-		"                 2. <название_графа_рез> = <название_графа1> <|| | * | +> <название_графа2>\n"
-		"Пример команды:  1. show 2 \"G1\" 5\n"
-		"                 2.\"G1\" = \"G2\" + \"G3\"\n";
+		"Формат команды:  1. <show|add|del|get> <номер_операции> <название_графа> [параметры]\n"
+		"Пример команды:  1. show 2 \"G1\" 5\n";
 
 	cout << str << endl;
 }
@@ -331,7 +395,7 @@ void Interface::print_cmd(int cmd_num)
 	{
 		print_delete();
 	}
-	else if (cmd_num > 20 && cmd_num < 28)
+	else if (cmd_num > 20 && cmd_num < 31)
 	{
 		print_get();
 	}
@@ -342,7 +406,48 @@ void Interface::print_cmd(int cmd_num)
 	}
 }
 
-void get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
+Graph * Interface::get_graph(std::string &cmd_line)
+{
+	boost::regex base
+	(
+		"^(\\\"[^\\\"]+?\\\")(?: +(?:\\d{1,}|\\(\\d{1,}, *\\d{1,}\\)|\\\"[^\\\"]+?\\\"))* *$"
+	);
+	boost::smatch matches;
+	bool take_gname = boost::regex_match(cmd_line, matches, base);
+
+	if (take_gname == false)
+		throw std::exception("Invalid arguments");
+
+	if (data_base.find(matches[1].str()) == data_base.end())
+		throw std::exception("No graph with the same name");
+
+	Graph *g = data_base[matches[1].str()].get();
+
+	/*erase graph name*/
+	cmd_line.erase(cmd_line.begin(), cmd_line.begin() + matches[1].length());
+
+	return g;
+}
+
+std::pair<short, short> Interface::get_edge(const std::string &str_edge)
+{
+	boost::regex base("^\\((\\d{1,}), *(\\d{1,})\\)$");
+	boost::smatch matches;
+	bool is_edge = boost::regex_match(str_edge, matches, base);
+
+	if (is_edge == false)
+		throw std::exception(std::string("Invalid arguments: \"" + str_edge + "\" is not the edge").c_str());
+
+	std::pair<short, short> edge =
+	{
+		boost::lexical_cast<short>(matches[1].str()),
+		boost::lexical_cast<short>(matches[2].str())
+	};
+
+	return edge;
+}
+
+void Interface::get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
 {
 	switch (cmd_num)
 	{
@@ -356,7 +461,15 @@ void get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
 	{
 		if (args.size() != 1)
 			throw std::exception("Invalid amount of arguments in \"showVertexDegree\"");
-		short v = boost::lexical_cast<short>(args[0]);
+		short v;
+		try
+		{
+			v = boost::lexical_cast<short>(args[0]);
+		}
+		catch (boost::bad_lexical_cast &)
+		{
+			throw std::exception("Invalid arguments in \"showVertexDegree\"");
+		}
 		graph->showVertexDegree(v);
 	}
 		break;
@@ -388,8 +501,18 @@ void get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
 	{
 		if (args.size() != 2)
 			throw std::exception("Invalid amount of arguments in \"showDistance\"");
-		short a = boost::lexical_cast<short>(args[0]);
-		short b = boost::lexical_cast<short>(args[1]);
+
+		short a, b;
+		try
+		{
+			a = boost::lexical_cast<short>(args[0]);
+			b = boost::lexical_cast<short>(args[1]);
+		}
+		catch (boost::bad_lexical_cast &)
+		{
+			throw std::exception("Invalid arguments in \"showDistance\"");
+		}
+
 		graph->showDistance(a, b);
 	}
 		break;
@@ -397,7 +520,15 @@ void get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
 	{
 		if (args.size() != 1)
 			throw std::exception("Invalid amount of arguments in \"showEccentricity\"");
-		short b = boost::lexical_cast<short>(args[0]);
+		short b;
+		try
+		{
+			b = boost::lexical_cast<short>(args[0]);
+		}
+		catch (boost::bad_lexical_cast &)
+		{
+			throw std::exception("Invalid arguments in \"showEccentricity\"");
+		}
 		graph->showEccentricity(b);
 	}
 		break;
@@ -414,32 +545,166 @@ void get_function(Graph *graph, int cmd_num, const std::deque<std::string>&args)
 		graph->showPeripheralVertex();
 		break;
 	case 17:
+		graph->AddVertex("");
 		break;
 	case 18:
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"DeleteVertex\"");
+		{
+			short b;
+			try
+			{
+				b = boost::lexical_cast<short>(args[0]);
+			}
+			catch (boost::bad_lexical_cast &)
+			{
+				throw std::exception("Invalid arguments in \"DeleteVertex\"");
+			}
+
+			graph->DeleteVertex(b);
+		}
 		break;
-	case 19:
+	case 19:/*Добавление ребра*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"AddEdge\"");
+		{
+			std::pair<short, short> edge = get_edge(args[0]);
+			graph->AddEdge(edge.first, edge.second);
+		}
 		break;
-	case 20:
+	case 20:/*Удаление ребра*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"DeleteEdge\"");
+		{
+			std::pair<short, short> edge = get_edge(args[0]);
+			graph->DeleteEdge(edge.first, edge.second);
+		}
 		break;
-	case 21:
+	case 21:/*Дополнение графа*/
+		if (args.size() != 0)
+			throw std::exception("Invalid amount of arguments in \"getAdditionGraph\"");
+		graph->getAdditionGraph();
 		break;
-	case 22:
+	case 22:/*Подразбиение ребра*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"splitEdge\"");
+		{
+			std::pair<short, short> edge = get_edge(args[0]);
+			graph->splitEdge(edge.first, edge.second);
+		}
 		break;
-	case 23:
+	case 23:/*Стягивание графа*/
+	{
+		std::vector<short> v;
+		for (int i = 0; i < args.size(); i++)
+		{
+			short vert;
+			try
+			{
+				vert = boost::lexical_cast<short>(args[i]);
+			}
+			catch (const boost::bad_lexical_cast&)
+			{
+				throw std::exception("Invalid arguments in \"splitGraph\"");
+			}
+
+			v.push_back(vert);
+		}
+		graph->pullOffGraph(v);
+	}
 		break;
-	case 24:
+	case 24:/*Стягивание ребра*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"pullOfEdge\"");
+		{
+			std::pair<short, short> edge = get_edge(args[0]);
+			graph->pullOffEdge(edge.first, edge.second);
+		}
 		break;
-	case 25:
+	case 25:/*Отождествление вершин*/
+		if (args.size() != 2)
+			throw std::exception("Invalid amount of arguments in \"vertexIdentification\"");
+		{
+			short a, b;
+			try
+			{
+				a = boost::lexical_cast<short>(args[0]);
+				b = boost::lexical_cast<short>(args[1]);
+			}
+			catch (boost::bad_lexical_cast &)
+			{
+				throw std::exception("Invalid arguments in \"vertexIdentification\"");
+			}
+			graph->vertexIdentification(a, b);
+		}
 		break;
-	case 26:
+	case 26:/*Дублирование вершины*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"vertexDuplicate\"");
+
+		short b;
+		try
+		{
+			b = boost::lexical_cast<short>(args[0]);
+		}
+		catch (boost::bad_lexical_cast &)
+		{
+			throw std::exception("Invalid arguments in \"vertexDuplicate\"");
+		}
+		graph->vertexDuplicate(b);
 		break;
 	case 27:
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments in \"vertexReproduction\"");
+		{
+			short b;
+			try
+			{
+				b = boost::lexical_cast<short>(args[0]);
+			}
+			catch (boost::bad_lexical_cast &)
+			{
+				throw std::exception("Invalid arguments in \"vertexReproduction\"");
+			}
+			graph->vertexReproduction(b);
+		}
 		break;
-	case 28:
+	case 28:/*умножение графов*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments");
+
+		if (data_base.find(args[0]) == data_base.end())
+			throw std::exception(std::string("No graph with the same name: " + args[0]).c_str());
+		{
+			Graph *g = data_base[args[0]].get();
+
+			(*graph) = (*graph) * (*g);
+		}
+
 		break;
-	case 29:
+	case 29:/*присоединение графов*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments");
+
+		if (data_base.find(args[0]) == data_base.end())
+			throw std::exception(std::string("No graph with the same name: " + args[0]).c_str());
+		{
+			Graph *g = data_base[args[0]].get();
+
+			(*graph) = (*graph) + (*g);
+		}
 		break;
-	case 30:
+	case 30:/*объединение графов*/
+		if (args.size() != 1)
+			throw std::exception("Invalid amount of arguments");
+
+		if (data_base.find(args[0]) == data_base.end())
+			throw std::exception(std::string("No graph with the same name: " + args[0]).c_str());
+		{
+			Graph *g = data_base[args[0]].get();
+
+			(*graph) = (*graph) || (*g);
+		}
 		break;
 	default:
 		break;

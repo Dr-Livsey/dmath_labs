@@ -97,10 +97,6 @@ Graph::Graph(size_t initSize)
 {
 	resizeAdMatrix(initSize);
 }
-Graph::Graph()
-{
-	//isOriented = false;
-}
 
 Graph::~Graph()
 {
@@ -893,8 +889,8 @@ void Graph::AddEdge(short a, short b)
 
 void Graph::AddVertex(std::string newVertex)
 {
-	if (AdjacencyMatrix.empty())
-		throw std::exception("Graph is empty.");
+	/*if (AdjacencyMatrix.empty())
+		throw std::exception("Graph is empty.");*/
 
 	std::vector<short>  newVertexVector;
 

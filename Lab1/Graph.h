@@ -18,8 +18,8 @@ class Graph
 public:
 	Graph(std::string fname);
 	Graph(size_t);
+	Graph(bool isor = false) : isOriented(isor){}
 	Graph(const Graph& other) { *this = other; }
-	Graph();
 	~Graph();
 
 	size_t vertexAmount() const;
