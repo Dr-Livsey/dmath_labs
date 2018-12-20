@@ -20,6 +20,21 @@ struct edge;
 
 Matrix& resizeMatrix(Matrix&, size_t);
 
+struct label_pack
+{
+	typedef std::vector<short> Array;
+
+	label_pack() {}
+	label_pack(const Array&_prev, const Array&_h, const Array&_choice) :
+		Previous(_prev), h(_h), choice(_choice)
+	{}
+
+	Array   Previous;
+	Array   h;
+	Array	choice;
+};
+
+
 class Graph
 {
 
@@ -94,6 +109,11 @@ public:
 		return *this;
 	}
 
+	/*Lab4*/
+	label_pack labeling(const short &s, const short &t, const Matrix &F);
+	int edmonds_karp();
+	/******/
+
 	/*Lab3*/
 	void ford_bellman(short v1);
 	void floyd(short v1, short v2);
@@ -105,6 +125,8 @@ public:
 	void showPrima();
 
 	friend Matrix operator||(const Matrix &a, const Matrix &b);
+	friend void   get_st(const Graph &g, short &s, short &t);
+	friend void   show_chain(std::ofstream &os, const Graph &g, const label_pack &lp, const Matrix &F, short s, short t);
 private:
 	/*возвращает вершины в разных компонентах связности*/
 	std::vector<short> con_components();
@@ -115,8 +137,10 @@ private:
 
 	bool isOriented;
 	bool isWeighted;
+	
 	Matrix WeighedMatrix;
 	Matrix AdjacencyMatrix;
+	Matrix F;
 
 	void readGraph(std::string);
 	void readAdMatrix(std::ifstream&);

@@ -176,6 +176,7 @@ void Graph::floyd(short v1, short v2)
 
 				parents[i][j] = i;
 			}
+			//parents[i][j] = i;
 		}
 	}
 	
@@ -205,6 +206,9 @@ void Graph::floyd(short v1, short v2)
 					{
 						distances[i][j] = distances[i][k] + distances[k][j];
 						parents[i][j] = parents[k][j];
+
+						log << " = " << std::to_string(distances[i][k]) + " + " + std::to_string(distances[k][j]) + "\t[+]\n";
+
 						continue;
 					}
 				}

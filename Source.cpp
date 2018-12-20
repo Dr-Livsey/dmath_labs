@@ -8,15 +8,16 @@ int main()
 {
 	try
 	{
-		Graph g("test.txt");
+		//Graph g("net2.txt");
 
-		g.floyd(1, 13);
-		g.ford_bellman(1);
+		/*g.floyd(1, 13);
+		g.ford_bellman(1);*/
 
-		//g.showBfs();
+		//g.edmonds_karp();
 
-		//Interface my_interface;
-		//my_interface();
+
+		Interface my_interface;
+		my_interface();
 	}
 	catch (const std::out_of_range &)
 	{

@@ -46,7 +46,7 @@ void Interface::operator()(void)
 
 void Interface::show(int cmd_num, std::string raw_cmd)
 {
-	if (cmd_num >= 0 && cmd_num <= 16 || (cmd_num >= 33 && cmd_num <= 37))
+	if (cmd_num >= 0 && cmd_num <= 16 || (cmd_num >= 33 && cmd_num <= 38))
 	{		
 		Graph *graph_ptr = get_graph(raw_cmd);
 		std::deque<std::string> stokens = get_tokens(raw_cmd, boost::regex("\\d{1,}"));
@@ -320,7 +320,8 @@ void Interface::print_show()
 		"34 <название графа>                     - получение остова графа поиском в ширину\n"
 		"35 <название графа>                     - вывод матрицы весов\n"
 	    "36 <название графа> <в1> <в2>           - алгоритм Флойда\n"
-	    "37 <название графа> <в1>                - алгоритм Форда Беллмана\n";
+	    "37 <название графа> <в1>                - алгоритм Форда Беллмана\n"
+		"38 <название графа> <в1>                - алгоритм Эдмондса-Карпа\n";
 
 
 	cout << str << endl;
@@ -738,7 +739,6 @@ void Interface::get_function(Graph *graph, int cmd_num, const std::deque<std::st
 			graph->floyd(a, b);
 		}
 		break;
-		break;
 	case 37: /*алгоритм Форда - Беллмана*/
 		if (args.size() != 1)
 			throw std::exception("Invalid amount of arguments in \"ford-bellman\"");
@@ -754,6 +754,9 @@ void Interface::get_function(Graph *graph, int cmd_num, const std::deque<std::st
 			}
 			graph->ford_bellman(b);
 		}
+		break;
+	case 38:
+		graph->edmonds_karp();
 		break;
 	default:
 		break;

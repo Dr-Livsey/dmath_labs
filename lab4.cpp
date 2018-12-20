@@ -59,6 +59,7 @@ label_pack Graph::labeling(const short &s, const short &t, const Matrix &F)
 }
 
 void get_st(const Graph &g, short &s, short &t);
+void showFMatrix(std::ofstream &os, Matrix &F);
 
 int Graph::edmonds_karp()
 {
@@ -68,13 +69,28 @@ int Graph::edmonds_karp()
 
 	short s, t; get_st(*this, s, t);
 
+	///*logging*/
+	std::ofstream log("edmonds_karp.txt");
+	log << "# s = " << s + 1<< endl;
+	log << "# t = " << t + 1 << "\n\n";
+	unsigned it = 1;
+	/*******/
+
 	label_pack lp;
+
 	do
 	{
+		log << "# Итерация:\t" << it << endl;
 		lp = labeling(s, t, F);
 
 		if (lp.h[t] < inf)
 		{
+
+			log << "f - доп. цепь: ";
+			show_chain(log, *this, lp, F, s, t);
+
+			log << "h(P) = " << lp.h[t] << endl;
+
 			f_value += lp.h[t]; 
 			
 			for (short v = t; v != s;)
@@ -88,11 +104,55 @@ int Graph::edmonds_karp()
 
 				v = w;
 			}
+
+			log << "=============> ";
+			show_chain(log, *this, lp, F, s, t);
 		}
+		else
+		{
+			log << "# f - доп. цепь: empty";
+		}
+
+		log << "\n\n" << endl;
+		it++;
 	} 
 	while (lp.h[t] != inf);
 
+	showFMatrix(log, F);
+
+	log << "Максимальный поток: " << f_value << endl;
+	cout << "Max flow: " << f_value << endl;
+	log.close();
+
 	return f_value;
+}
+
+void show_chain(std::ofstream &os, const Graph &g, const label_pack &lp, const Matrix &F, short s, short t)
+{
+	std::deque<short> chain = { t };
+
+	while (t != s)
+	{
+		t = lp.Previous[t];
+		chain.push_front(t);
+	}
+
+	os << "[" << s + 1 << "]";
+	for (int v = 1; v < chain.size(); v++)
+	{
+		short cur = chain[v], prev = chain[v - 1];
+		if (lp.choice[cur] == 1)
+		{
+			os << " --" << F[prev][cur] << "/" << g.WeighedMatrix[prev][cur] << "--> ";
+		}
+		else
+		{
+			os << " <-" << F[cur][prev] << "/" << g.WeighedMatrix[cur][prev] << "--- ";
+		}
+
+		os << "[" << cur + 1 << "]";
+	}
+	os << endl;
 }
 
 void get_st(const Graph &g, short &s, short &t)
@@ -120,4 +180,27 @@ void get_st(const Graph &g, short &s, short &t)
 
 	if (s == -1 || t == -1)
 		throw std::exception("Bad network. No stock or source.");
+}
+
+void showFMatrix(std::ofstream &os, Matrix &F)
+{
+	Matrix &m = F;
+
+	os << "F matrix:" << endl;
+
+	os << "     ";
+	for (auto i = m.cbegin(); i != m.cend(); i++)
+		os << std::setw(4) << "[" + std::to_string(i - m.cbegin() + 1) + "]";
+	os << endl;
+
+	for (auto row = m.cbegin(); row != m.cend(); row++)
+	{
+		os << std::setw(4) << "[" + std::to_string(row - m.cbegin() + 1) + "]";
+		for (auto column = row->cbegin(); column != row->cend(); column++)
+		{
+			os << std::setw(4) << ((*column) == inf ? "i" : std::to_string((*column)));
+		}
+		os << endl;
+	}
+	os << endl;
 }
